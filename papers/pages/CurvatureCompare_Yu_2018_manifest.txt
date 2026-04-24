@@ -1,0 +1,8 @@
+PDF: papers/CurvatureCompare_Yu_2018.pdf
+Total pages: 7
+Pages per chunk: 3
+
+Chunks:
+  CurvatureCompare_Yu_2018_chunk_001.pdf: pages 1-3
+  CurvatureCompare_Yu_2018_chunk_002.pdf: pages 4-6
+  CurvatureCompare_Yu_2018_chunk_003.pdf: page 7

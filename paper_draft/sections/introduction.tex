@@ -1,0 +1,26 @@
+\section{Introduction}
+\label{sec:intro}
+
+A ReLU MLP is the simplest modern deep network: no attention, no convolution, no skip connection, only a stack of $\mathrm{Linear}\!\to\!\mathrm{ReLU}$ layers. It is therefore the cleanest setting in which to ask the central question of representation-similarity analysis: \textbf{how similar are the hidden states at different layers?} A single affine-plus-ReLU transformation has bounded per-layer capacity, so nearby layers cannot produce arbitrarily different representations; but if they were identical, the network would not be learning anything layer-by-layer. The answer must lie in between---but where, and how does it depend on width, depth, and training regime?
+
+Representation-similarity analyses for CNNs~\citep{kornblith2019similarity,nguyen2021wide}, ResNets~\citep{nguyen2022origins}, and transformers~\citep{raghu2021vit,brown2023dissimilarity} have produced a rich vocabulary of findings: block structure in over-parameterized networks, bottom-up convergence in training, saturation and ``logit-lens'' effects in residual stacks~\citep{jiang2024tracing}. Yet the same phenomena have not been cleanly tabulated for \emph{pure} MLPs on standard image benchmarks. This matters for three reasons. First, the MLP is the substrate of every transformer's FFN sublayer, so the behavior of stand-alone MLP stacks informs our understanding of what those sublayers actually do~\citep{pessoa2023onewide}. Second, theory predicts sharp regime differences between rich and lazy MLPs~\citep{tong2025richness,chizat2019global} that have not been empirically mapped. Third, methodological concerns about \ckam~\citep{davari2022reliability} call for multi-metric confirmation of any cross-layer story.
+
+\para{This paper.} We train a full $3\!\times\!3$ grid of MLP depths and widths on \cifar and \mnist, three seeds each, and compute five independent per-layer representation measures: \ckam, \procrustes similarity, sample-wise cosine similarity, the variance ratio of the first principal component, and per-layer linear-probe accuracy. We add three ablations on the reference configuration (\mlp{8}{512}, \cifar): a rich-vs-lazy sweep of the initialization scale, a shuffled-label control, and a ``dominant-datapoint'' ablation replicating the \citet{nguyen2022origins} mechanism for MLPs.
+
+\para{Our findings.} The headline numbers directly answer the motivating question:
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+    \item MLP hidden states are \emph{measurably} different across layers---mean off-diagonal CKA is always strictly between 0.50 and 0.93---but \emph{never totally different}: adjacent layers have CKA $\approx\!0.86$ on \cifar and $\approx\!0.95$ on \mnist.
+    \item At depth 16, layers 2--14 form a contiguous block with CKA $\gtrsim\!0.9$, reproducing block structure in a pure-MLP setting for the first time to our knowledge.
+    \item Wider MLPs have \emph{less} similar layers at depths 4 and 8 (Spearman $\rho\!=\!-0.95$, $p\!<\!10^{-3}$ on \cifar), directly confirming the intuition that limited per-layer transformation capacity is what makes narrow MLPs' layers look alike. The effect reverses at depth 16 as block structure takes over.
+    \item Procrustes similarity agrees with CKA at $\rho\!=\!0.98$; rich-regime MLPs have lower cross-layer CKA than lazy ones; shuffled-label training still produces measurable cross-layer structure.
+\end{itemize}
+
+\para{Contributions.}
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+    \item We produce, to our knowledge, the first clean cross-metric depth$\times$width sweep of cross-layer representation similarity for \emph{pure} ReLU MLPs on \cifar and \mnist.
+    \item We report a pure-MLP instance of block structure at depth 16, extending a phenomenon previously confirmed only in CNNs, ResNets, and transformers.
+    \item We identify a sign reversal in the width--similarity relationship with depth: at $d\!\leq\!8$, wider MLPs have \emph{less} similar layers (opposite sign to the CNN finding of \citet{kornblith2019similarity}); at $d\!=\!16$, block structure flattens the effect.
+    \item We validate the rich-vs-lazy prediction of \citet{tong2025richness} empirically, and show that the \citet{nguyen2022origins} dominant-datapoint mechanism is present but much weaker in MLPs ($\Delta$CKA $=\!-0.011$) than in CNNs ($\Delta \approx\!-0.15$).
+\end{itemize}
+
+\para{Paper organization.} \Secref{sec:related} surveys prior cross-layer similarity work. \Secref{sec:methodology} describes the architecture family, training protocol, and metrics. \Secref{sec:results} reports the main sweep, cross-metric agreement, and the ablations. \Secref{sec:discussion} interprets the findings and their limitations. \Secref{sec:conclusion} closes.

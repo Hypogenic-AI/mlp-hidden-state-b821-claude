@@ -1,0 +1,14 @@
+PDF: papers/WideDeep_Nguyen_2020.pdf
+Total pages: 25
+Pages per chunk: 3
+
+Chunks:
+  WideDeep_Nguyen_2020_chunk_001.pdf: pages 1-3
+  WideDeep_Nguyen_2020_chunk_002.pdf: pages 4-6
+  WideDeep_Nguyen_2020_chunk_003.pdf: pages 7-9
+  WideDeep_Nguyen_2020_chunk_004.pdf: pages 10-12
+  WideDeep_Nguyen_2020_chunk_005.pdf: pages 13-15
+  WideDeep_Nguyen_2020_chunk_006.pdf: pages 16-18
+  WideDeep_Nguyen_2020_chunk_007.pdf: pages 19-21
+  WideDeep_Nguyen_2020_chunk_008.pdf: pages 22-24
+  WideDeep_Nguyen_2020_chunk_009.pdf: page 25

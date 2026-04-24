@@ -1,0 +1,11 @@
+PDF: papers/GraphBasedSim_2021.pdf
+Total pages: 18
+Pages per chunk: 3
+
+Chunks:
+  GraphBasedSim_2021_chunk_001.pdf: pages 1-3
+  GraphBasedSim_2021_chunk_002.pdf: pages 4-6
+  GraphBasedSim_2021_chunk_003.pdf: pages 7-9
+  GraphBasedSim_2021_chunk_004.pdf: pages 10-12
+  GraphBasedSim_2021_chunk_005.pdf: pages 13-15
+  GraphBasedSim_2021_chunk_006.pdf: pages 16-18

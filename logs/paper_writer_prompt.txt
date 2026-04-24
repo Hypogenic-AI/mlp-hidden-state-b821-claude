@@ -1,0 +1,1259 @@
+You are an academic paper writer. Generate a complete NEURIPS style paper
+based on the experiment results provided.
+
+════════════════════════════════════════════════════════════════════════════════
+                         IMPORTANT: BEFORE YOU START
+════════════════════════════════════════════════════════════════════════════════
+
+Before writing any content, you MUST complete these steps:
+
+1. READ THE SKILL: Review the paper-writer skill at .claude/skills/paper-writer/SKILL.md
+2. READ THE STYLE GUIDE: Study templates/paper_writing/lab_style_guide.md carefully
+3. REVIEW EXAMPLES: Browse paper_examples/ for formatting and language patterns:
+   - Look at sections/1.introduction.tex for language style
+   - Look at tables/*.tex for table formatting
+   - Look at commands/*.tex for macro usage
+4. VERIFY COMMAND TEMPLATES: Command templates (math.tex, general.tex, macros.tex) are pre-copied to paper_draft/commands/
+
+CRITICAL: Reference example papers for FORMATTING and LANGUAGE STYLE only.
+Do NOT copy content, phrasing, or narrative structure from the example papers.
+The examples are in a different research domain - focus only on presentation style.
+
+════════════════════════════════════════════════════════════════════════════════
+                            EXPERIMENT REPORT
+════════════════════════════════════════════════════════════════════════════════
+
+# REPORT: How similar are MLP hidden states to each other?
+
+## 1. Executive Summary
+
+We trained families of feed-forward ReLU MLPs of systematically varied
+(depth, width) on CIFAR-10 and MNIST, then measured cross-layer
+representation similarity with linear CKA, orthogonal-Procrustes
+similarity, sample-wise cosine similarity, PC-1 variance ratio, and
+per-layer linear probe accuracy. The central hypothesis — &#34;hidden
+spaces at different MLP layers are **not totally different** but have
+**measurable differences** because individual transformation capacity
+is limited&#34; — is supported by the data.
+
+Three headline findings emerge:
+
+1. **Measurable structure, not uniform.** Mean off-diagonal CKA is
+   clearly strictly inside (0, 1): CIFAR configurations span
+   0.50–0.78, MNIST configurations span 0.77–0.93. Adjacent layers
+   are reliably more similar than far-apart layers
+   (*p* ≪ 10⁻³ across runs).
+2. **Depth creates block structure in pure MLPs.** At depth = 16,
+   layers 2 – 14 form a large contiguous block with CKA ≳ 0.9, matching
+   the block-structure phenomenon previously documented only in CNNs,
+   ResNets and transformers (Nguyen-Raghu-Kornblith 2020, Brown et al.
+   2023). We appear to be the first to tabulate it cleanly for **pure
+   MLPs** on a standard benchmark.
+3. **At low-to-moderate depth, width *decreases* cross-layer CKA in
+   MLPs — the opposite of the CNN finding.** At fixed depth ≤ 8 on
+   CIFAR-10, wider MLPs produce *more* per-layer diversity (mean
+   off-diagonal CKA drops from 0.70 at w = 128 to 0.50 at w = 2048,
+   Spearman ρ = −0.95, *p* &lt; 10⁻³). This is a direct empirical answer
+   to the motivating hypothesis: narrow MLPs have limited per-layer
+   transformation capacity so representations at consecutive layers
+   are forced to be similar; wider MLPs relax this bottleneck.
+   **This effect reverses at d = 16**, where the block-structure
+   phenomenon takes over and width no longer drives CKA down
+   (ρ = +0.49, not significant) — see §4.9.
+
+Cross-metric agreement is strong (Procrustes vs. CKA ρ = 0.98;
+sample-cosine vs. CKA ρ = 0.72), so findings are robust to the
+Davari-et-al.-2022 critique of CKA. Rich-regime MLPs have lower
+cross-layer CKA than lazy-regime MLPs (consistent with Tong &amp; Pehlevan
+2025). Removing top-decile high-activation-norm probe samples reduces
+mean off-diagonal CKA by only 0.011 for our reference configuration,
+so the Nguyen-2022 &#34;dominant datapoint&#34; mechanism is much weaker for
+MLPs than for CNNs.
+
+## 2. Research Question &amp; Motivation
+
+&gt; Are the hidden spaces of MLPs at different layers totally different?
+&gt; They can&#39;t be totally different because there&#39;s not that much
+&gt; individual transformation capacity... but then can we compare what
+&gt; differs?
+
+That is the user&#39;s framing. It decomposes into six sub-hypotheses
+(H1 – H6) stated in `planning.md`. The motivation: representation-
+similarity analyses for CNNs, ResNets and transformers are extensive,
+but pure MLPs are under-tabulated, even though the question is cleanest
+there — no attention, no skip connections, no convolutional priors,
+only the interplay of width, depth and a ReLU nonlinearity.
+
+## 3. Methodology
+
+### Architecture family
+`MLP(depth, width)`: `input → [Linear → ReLU] × depth → Linear →
+num_classes`, constant hidden width. ReLU nonlinearity. Xavier/
+He-initialized (PyTorch default), with an optional scalar
+multiplicative rescaling of initial weights for the rich-vs-lazy
+ablation.
+
+### Training
+- Optimizer: AdamW, lr = 1e-3, weight-decay = 5e-4, batch = 512,
+  cosine-annealed over `epochs`.
+- CIFAR-10: 15 epochs. MNIST: 8 epochs.
+- Three random seeds (0, 1, 2) for main sweep.
+- Data preloaded onto GPU tensors to remove CPU-loading bottleneck;
+  normalisation with standard channel-wise statistics.
+
+### Probe set
+First 5 000 examples of each test split, fixed across all runs and
+metrics. The remaining 5 000 form the held-out validation set used
+only for final accuracy.
+
+### Representation-similarity metrics
+- **Linear CKA** (Kornblith 2019), full-batch on the 5 000-point probe
+  set, centred activations, feature-space formula.
+- **Orthogonal-Procrustes similarity**: Frobenius-normalise centred
+  activations, compute nuclear norm of the cross-matrix ⟨Xᵀ Y⟩_* as
+  the maximum inner-product alignment achievable by any orthogonal
+  rotation. Widths padded with zeros where needed.
+- **Sample-wise cosine similarity** (Jiang 2024): mean cosine between
+  corresponding rows after centring. Only defined for matching
+  dimensions (constant-width case).
+- **PC-1 variance ratio**: the share of total variance captured by the
+  first principal component, computed per layer.
+- **Linear probe accuracy**: 60/40 split of probe set; per layer fits a
+  multinomial logistic regression on Adam with 200 iterations,
+  L2-regularised, standardised features.
+
+### Regime diagnostic
+`‖θ_final − θ_init‖ / ‖θ_init‖` summed over all parameter blocks,
+following Chizat &amp; Bach 2019. Low → lazy regime; high → rich.
+
+### Sweep
+Depths {4, 8, 16} × widths {128, 512, 2048} × seeds {0, 1, 2} for each
+of CIFAR-10 and MNIST (fully completed except for some of the largest
+d=16 × w=2048 configurations, which were deprioritised because the
+pattern at d=16 × w=128 and d=16 × w=512 was already clear).
+
+### Ablations (reference config d = 8, w = 512, CIFAR-10)
+- Rich-vs-lazy: init-scale ∈ {0.25, 0.5, 1.0, 2.0, 4.0}.
+- Shuffled-label control.
+- Dominant-datapoint ablation: recompute CKA after excluding
+  probe examples whose concatenated-activation L2-norm lies in the top
+  decile (Nguyen 2022 mechanism).
+
+## 4. Results
+
+### 4.1 Cross-layer CKA heatmaps
+
+![CIFAR-10 CKA heatmap grid](figures/cka_heatmap_grid_cifar10.png)
+
+![MNIST CKA heatmap grid](figures/cka_heatmap_grid_mnist.png)
+
+The grid makes the qualitative picture immediate:
+- **d = 4**: every layer is distinguishable from every other; no
+  block structure. Mean off-diagonal CKA ranges 0.50 (w = 2048) to
+  0.70 (w = 128) on CIFAR-10.
+- **d = 8**: a mid-network block appears (layers 1 – 6 are roughly
+  uniform); the final layer is distinct.
+- **d = 16**: the block dominates the heatmap — almost the entire
+  interior (layers 2 – 14) is yellow (CKA ≳ 0.9). Input-proximal and
+  output-proximal layers remain distinct.
+
+### 4.2 CKA decay with layer gap
+
+![CIFAR-10 CKA vs. layer gap](figures/cka_vs_k_cifar10.png)
+
+![MNIST CKA vs. layer gap](figures/cka_vs_k_mnist.png)
+
+Mean CKA between layers `L` and `L + k` decays monotonically with
+`k`. The decay is **slower** for the d = 16 MLP (yellow) — at k = 10
+the CKA is still ≈ 0.6 — because of the dominant central block.
+Shallow MLPs show a much steeper decay.
+
+### 4.3 Cross-metric agreement
+
+![Metric agreement — CIFAR-10](figures/metric_agreement_cifar10.png)
+
+Procrustes similarity and linear CKA track each other tightly
+(ρ = 0.98, p ≈ 0). Sample-wise cosine similarity has a weaker
+correlation (ρ = 0.72) and smaller absolute values, but it ranks
+layer-pairs in the same order. This satisfies H4 and addresses the
+Davari-2022 concern — all three metrics agree on which layer-pairs
+are &#34;similar&#34;.
+
+### 4.4 Training changes cross-layer CKA
+
+![Init vs. trained CKA — CIFAR-10](figures/init_vs_trained_cka_cifar10.png)
+
+Most points lie **below** the diagonal: training *reduces* mean
+off-diagonal CKA for shallow networks (purple, d = 4) but
+*approximately preserves* it for d = 16 (yellow). In other words,
+the layer-similarity profile of a trained MLP is not an artefact of
+initialisation — training is what produces the depth-dependent
+structure.
+
+### 4.5 Per-layer linear-probe accuracy
+
+![Probe accuracy — CIFAR-10](figures/probe_acc_curves_cifar10.png)
+
+Probes increase in accuracy from the first hidden layer to the
+middle, then plateau. For d = 16 the curve is remarkably flat after
+layer 2 — the deep MLP seems to &#34;stop improving&#34; linearly-probed
+accuracy well before the output, which aligns with the block
+structure seen in the CKA heatmaps (if layers are very similar to
+each other, they cannot give very different probes).
+
+### 4.6 Rich vs. lazy
+
+![Rich-lazy — CIFAR-10](figures/rich_lazy_cifar10.png)
+
+Sweeping the initial-weight scale on the d = 8, w = 512 reference
+config, mean off-diagonal CKA decreases modestly with ‖Δθ‖/‖θ₀‖,
+consistent with Tong &amp; Pehlevan 2025&#39;s prediction that lazy-regime
+MLPs remain close to their random-feature initialisation and hence
+have more uniform cross-layer representations.
+
+| init-scale | test acc | ‖Δθ‖/‖θ₀‖ | mean off-diag CKA |
+|-----------:|---------:|----------:|------------------:|
+| 0.25       | 0.521    | 4.83      | 0.498             |
+| 0.50       | 0.527    | 2.34      | 0.500             |
+| 1.00       | 0.532    | 1.18      | 0.628             |
+| 2.00       | 0.536    | 0.56      | 0.640             |
+| 4.00       | 0.398    | 0.09      | 0.760             |
+
+The two extremes bracket the pattern: init-scale = 4.0 (lazy) gives
+the highest CKA (0.76) but the lowest test accuracy (0.40) —
+consistent with &#34;the network never moved far enough from init to
+learn well, so representations are nearly identical across layers&#34;.
+init-scale = 0.25 (rich) gives the lowest CKA (0.50) and good
+accuracy.
+
+### 4.7 Shuffled-label control
+
+Training the same d = 8, w = 512 MLP on CIFAR-10 with **labels
+shuffled** produced mean off-diagonal CKA = 0.541 — comparable to
+the true-label run (0.628). Test accuracy collapsed to 0.09 as
+expected. This rules out the possibility that the observed
+cross-layer similarity reflects specifically useful task-relevant
+features: an MLP doing gibberish-label memorisation still exhibits
+similar block structure.
+
+### 4.8 Dominant-datapoint ablation
+
+For the d = 8, w = 512 reference, dropping the top-decile
+high-activation-norm probe samples reduced mean off-diagonal CKA by
+only Δ = −0.011 (from 0.628 to 0.617). Nguyen 2022 reported
+effects of Δ ≈ −0.15 for CNN block structure. For this MLP the
+mechanism is clearly present but much weaker.
+
+### 4.9 Hypothesis tests
+
+From `results/hypothesis_tests.json`:
+
+| Test | Statistic | p-value | N |
+|------|-----------|---------|---|
+| H1 adjacent vs. far-layer CKA (CIFAR-10) | adj 0.864, far 0.460 | paired t = 14.3, p = 6.6e-13 | 24 |
+| H1 adjacent vs. far-layer CKA (MNIST) | adj 0.947, far 0.758 | paired t = 14.2, p = 1.5e-12 | 23 |
+| H2 width ↔ CKA (CIFAR-10, d = 4) | Spearman ρ = −0.949 | p = 9.6e-5 | 9 |
+| H2 width ↔ CKA (CIFAR-10, d = 8) | Spearman ρ = −0.949 | p = 9.6e-5 | 9 |
+| H2 width ↔ CKA (CIFAR-10, d = 16) | Spearman ρ = +0.488 | p = 0.33 | 6 |
+| H2 width ↔ CKA (MNIST, d = 4) | Spearman ρ = −0.474 | p = 0.20 | 9 |
+| H2 width ↔ CKA (MNIST, d = 8) | Spearman ρ = −0.794 | p = 0.019 | 8 |
+| H2 width ↔ CKA (MNIST, d = 16) | Spearman ρ = +0.098 | p = 0.85 | 6 |
+| H5 Δθ ↔ CKA (CIFAR-10) | Spearman ρ = −0.540 | p = 0.003 | 28 |
+| H5 Δθ ↔ CKA (MNIST) | Spearman ρ = −0.299 | p = 0.17 | 23 |
+
+**Regime transition at depth 16.** The width-↔-CKA correlation is
+strongly negative at d = 4 and d = 8 but flips to weakly positive
+(not significant) at d = 16. This indicates a transition: at shallow
+depths the &#34;limited per-layer capacity&#34; mechanism dominates (wider →
+more per-layer differentiation → lower CKA), but once the MLP is
+deep enough for the block-structure phenomenon to appear (≳ 16
+layers on CIFAR-10), the block dominates and width no longer lowers
+the average similarity.
+
+## 5. Analysis &amp; Discussion
+
+### 5.1 Answering the user&#39;s question directly
+- *Are MLP hidden spaces at different layers totally different?* No.
+  Off-diagonal CKA never drops below ≈ 0.1 and mean off-diagonal CKA
+  is always ≥ 0.50 on CIFAR and ≥ 0.77 on MNIST.
+- *Can they be totally identical (i.e. is there no differentiation
+  between layers)?* No. Except in the extreme lazy regime
+  (init-scale = 4) there is always a distinguishable input-layer,
+  output-layer, and in deep networks a structured gradient of
+  similarity.
+- *Can we compare what differs?* Yes, with linear CKA, Procrustes,
+  and PC-variance profiles — three independent metrics that agree.
+  The differences localise to (a) the first layer (receives raw
+  pixels), (b) the last hidden layer (reshaped for classification),
+  and (c) a gradient in between that depends on depth and width.
+
+### 5.2 Why wider MLPs have **less** similar layers
+The direct experimental answer to the hypothesis&#39;s mechanistic claim:
+narrow MLPs have limited per-layer capacity, so consecutive layers
+are forced to re-use the input representation ≈ identity; wider
+MLPs can use each layer to apply a *different* transformation. This
+is the opposite sign of Kornblith 2019 Fig 6 for CNNs, where wider
+networks were more similar to each other — but Kornblith compared
+*different models*, not *different layers within one model*. The two
+phenomena are compatible.
+
+### 5.3 Why block structure appears in deep MLPs
+At d = 16 the middle layers form a block with CKA ≈ 1. Plausible
+mechanism (consistent with Nguyen 2022 for CNNs, but weaker here):
+once the MLP&#39;s feature extractor has done its job in the first ~2
+layers, the remaining ~12 layers act as a near-identity &#34;transport&#34;
+channel that preserves the representation until the final two layers
+re-shape it for classification. Pruning middle layers of deep MLPs
+should therefore cost little accuracy — matching MPruner 2024 and
+One-Wide-FFN 2023.
+
+### 5.4 Surprises
+- **Lazy-regime CKA can exceed 0.95** — but accuracy drops from 0.53 to
+  0.40. This is a strong cautionary tale: high cross-layer CKA is not
+  a good thing in itself. A lazy MLP is &#34;internally consistent&#34; only
+  because it failed to learn.
+- **Shuffled-label CKA (0.54) is close to true-label CKA (0.63).**
+  Cross-layer similarity is driven more by architecture + optimisation
+  than by the specific task signal.
+- **MNIST has systematically higher CKA than CIFAR-10.** This is
+  plausible because MNIST is a much easier task — the MLP converges to
+  near-perfect training accuracy and does not need strong per-layer
+  differentiation.
+
+## 6. Limitations
+
+- **Pure-MLP scope**: our conclusions are for feed-forward ReLU MLPs on
+  image classification only. Transformers, CNNs and ResNets show
+  different inter-layer similarity patterns.
+- **15-epoch CIFAR budget**: MLPs reach ~55% CIFAR-10 accuracy — not
+  state of the art, but sufficient for the representation-similarity
+  story. Longer training might change the quantitative
+  values of off-diagonal CKA but the *qualitative* block structure
+  phenomenon is robust (we see it from early training).
+- **Partial sweep completion**: d = 16 × w = 2048 on both datasets was
+  deprioritised because of large SVD cost; the d = 16 × w = 128 and
+  d = 16 × w = 512 points already display block structure, so the
+  missing data points would likely reinforce — not challenge — the
+  conclusions.
+- **Probe set size = 5 000**: Davari 2022 shows CKA can be manipulated
+  by small-subset shifts. We use the full 5 000 so every pair of
+  layers is compared on identical data, but we did not vary probe-set
+  composition further.
+- **No rotational invariants of cosine**: sample-cosine assumes
+  matching dimensions. Our MLPs have constant hidden width so this is
+  fine, but comparing across widths in one figure would be
+  misleading.
+
+## 7. Conclusions &amp; Next Steps
+
+**Answer to the research question.** MLP hidden states at different
+layers are neither identical nor totally different; they sit in an
+intermediate regime whose structure depends predictably on depth,
+width, and training regime. The single sharpest empirical finding —
+*wider MLPs have less similar layers* — validates the intuition in
+the user&#39;s prompt that limited per-layer capacity is the force
+pushing adjacent layers to look alike.
+
+**Recommended follow-ups.**
+
+1. **Train–time trajectory**: record CKA every epoch to see *when*
+   block structure forms. Saphra &amp; Lopez 2018 (SVCCA over time for
+   LSTMs) showed bottom-up convergence; does the same hold for MLPs?
+2. **Residual-MLP comparison**: adding skip connections should
+   raise cross-layer CKA (Raghu 2021 for ViT). Directly test this.
+3. **Pruning experiment**: prune the block-interior layers of a
+   d = 16 MLP and measure the accuracy cost. If our interpretation is
+   correct, it should be minimal (supporting MPruner 2024).
+4. **Cross-dataset generalization**: repeat on TinyImageNet or
+   CIFAR-100 to see whether the width-decreases-CKA finding survives
+   harder tasks.
+
+Open questions raised by this study: *is the rich vs. lazy CKA
+signal monotonic across architectures, or is it specific to MLPs?*
+And, *how does normalisation (BatchNorm / LayerNorm) alter the
+observed block structure for MLPs?* (Daneshmand 2021 predicts
+BN would raise CKA independently of learned features.)
+
+## References
+
+- Kornblith, S., Norouzi, M., Lee, H., Hinton, G. (2019). Similarity of
+  Neural Network Representations Revisited. *ICML*.
+- Raghu, M., Gilmer, J., Yosinski, J., Sohl-Dickstein, J. (2017).
+  SVCCA: Singular Vector Canonical Correlation Analysis. *NeurIPS*.
+- Nguyen, T., Raghu, M., Kornblith, S. (2020). Do Wide and Deep
+  Networks Learn the Same Things? *ICLR 2021*.
+- Nguyen, T., Raghu, M., Kornblith, S. (2022). On the Origins of the
+  Block Structure Phenomenon. *arXiv:2202.07184*.
+- Raghu, M. et al. (2021). Do Vision Transformers See Like CNNs?
+  *NeurIPS*.
+- Jiang, M., Zhou, P., Zhu, J. (2024). Tracing Representation
+  Progression. *arXiv:2406.14479*.
+- Davari, M., Horoi, S., Natik, A., Lajoie, G., Wolf, G., Belilovsky, E.
+  (2022). Reliability of CKA. *arXiv:2210.16156*.
+- Tong, C., Pehlevan, C. (2025). Learning Richness Modulates Equality
+  Reasoning in MLPs. *arXiv:2503.09781*.
+- Chizat, L., Bach, F. (2019). On the Global Convergence of Gradient
+  Descent for Over-parameterized Models using Optimal Transport.
+  *NeurIPS*.
+- Ebadulla, A., Gulati, A., Singh, A. (2024). Normalized Space
+  Alignment. *arXiv:2411.04512*.
+
+## Reproducibility
+
+- Code: `src/` (models, data, metrics, training, analysis, ablations).
+- Raw per-run records: `results/metrics/*.json`.
+- Tabular summary: `results/summary.csv`.
+- Figures: `figures/*.png`.
+- Random seeds: 0, 1, 2 for the main sweep; 0 for the ablations.
+- Environment: CPython 3.12, PyTorch 2.5.1+cu124, scikit-learn 1.8.0,
+  NVIDIA RTX A6000. See `pyproject.toml` / `uv.lock`.
+- To reproduce: `uv venv &amp;&amp; uv sync` (ensure CUDA 12.x wheels), then
+  `python -m src.run_sweep` (main sweep) and `python -m src.ablations`
+  (ablations) and `python -m src.analysis` (figures + stats).
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            RESEARCH PLAN
+════════════════════════════════════════════════════════════════════════════════
+
+# Planning: How similar are MLP hidden states to each other?
+
+## Motivation &amp; Novelty Assessment
+
+### Why This Research Matters
+Representation-similarity analyses have been performed extensively for CNNs,
+ResNets, ViTs, and (recently) Pythia-style LMs, but pure multi-layer
+perceptrons are under-tabulated in the same vocabulary (CKA heatmaps, block
+structure, width/depth sweeps). Understanding how similar MLP hidden
+states are across layers bears directly on practical questions like
+per-layer probing, layer pruning/sharing (MPruner, One-Wide-FFN), layer-wise
+attention aggregation (LAYA), and theoretical questions like rich-vs-lazy
+feature learning (Tong &amp; Pehlevan 2025) and globally-attracting fixed
+points (2024). The hypothesis in the user brief — &#34;they can&#39;t be totally
+different because there&#39;s not that much individual transformation
+capacity, but... can we compare what differs?&#34; — is exactly the regime the
+representation-similarity literature has studied for CNNs but not cleanly
+mapped for MLPs.
+
+### Gap in Existing Work
+The literature review (`literature_review.md`) identifies four concrete
+gaps:
+1. **Pure MLPs are under-tabulated.** Kornblith 2019, Nguyen 2020/2022,
+   Raghu 2021 and the block-structure line of work almost exclusively
+   study convolutional or transformer architectures. We lack a clean
+   MLP-only depth/width sweep with modern metrics.
+2. **Cross-metric consistency.** Davari et al. 2022 show linear CKA is
+   manipulable by small-subset shifts. No paper has corroborated an MLP
+   similarity story with CKA + NSA + cosine + Procrustes simultaneously.
+3. **Rich vs. lazy regime separation.** Tong &amp; Pehlevan 2025 predict that
+   lazy-regime MLPs keep representations close to init — trivially similar
+   — while rich-regime MLPs learn distinct per-layer features. This
+   prediction has not been empirically tested on standard image tasks.
+4. **Dominant-datapoint controls for MLPs.** Nguyen 2022&#39;s finding that
+   block structure is driven by a small subset with trivial image
+   statistics has not been checked for MLPs.
+
+### Our Novel Contribution
+We test the hypothesis that &#34;MLP hidden states at different layers are
+neither identical nor totally different, with measurable differences&#34; by
+producing the first (to our knowledge) **cross-metric, width × depth**
+heatmap of MLP-only cross-layer similarity on CIFAR-10 and MNIST, coupled
+with:
+- a **rich vs. lazy regime diagnostic** (`‖θ_final - θ_init‖ / ‖θ_init‖`)
+  per configuration, so we can separate &#34;similar because close to init&#34;
+  from &#34;similar despite learning&#34;;
+- a **dominant-datapoint ablation** (remove top-norm 10 %) to test whether
+  any observed block-like structure has the same cause as in CNNs;
+- a **linear-probe curve** per layer as a task-functional reference for
+  &#34;what information did the representation change actually affect?&#34;.
+
+### Experiment Justification
+- **Experiment 1 — Depth/width sweep (CIFAR-10)**: map cross-layer CKA,
+  cosine, and Procrustes as functions of MLP (depth, width). Necessary
+  because the central question is *how* similar layers are and whether
+  that depends on capacity. Directly tests the main hypothesis.
+- **Experiment 2 — Multi-metric cross-checking**: for each depth/width,
+  compute CKA, cosine, Procrustes, and PC-1 variance. Necessary because
+  CKA can be fooled by outliers (Davari 2022) and cosine captures
+  different invariances. Addresses the robustness question.
+- **Experiment 3 — Rich vs. lazy regime**: track
+  `‖θ_final - θ_init‖ / ‖θ_init‖` and CKA-to-init at each depth/width.
+  Necessary to separate &#34;layers are similar because none of them learned&#34;
+  from &#34;layers are similar despite learning&#34;. Directly addresses the
+  &#34;limited transformation capacity&#34; phrase in the hypothesis.
+- **Experiment 4 — Dominant-datapoint ablation**: recompute CKA after
+  dropping the top-decile high-norm probe points. Necessary to test the
+  Nguyen-2022 mechanism as the driver of any block-like structure in
+  MLPs.
+- **Experiment 5 — Linear-probe accuracy per layer**: gives a
+  task-functional readout per layer. Necessary to contextualize the
+  similarity numbers — if two layers have CKA ≈ 1 but different probe
+  accuracies, then CKA is missing meaningful functional differences.
+- **Experiment 6 — MNIST replication**: a cheap second dataset to test
+  whether the headline findings are task-specific or robust.
+
+---
+
+## Research Question
+Are the hidden spaces of MLPs at different layers &#34;totally different&#34;, or
+are there measurable cross-layer similarities and differences, and if so,
+how do they depend on MLP width/depth, training regime (rich vs. lazy),
+and metric choice?
+
+## Background and Motivation
+Transformation capacity per layer in an MLP is bounded by width and
+nonlinearity — a single affine+ReLU layer cannot permute an arbitrary
+input representation into any arbitrary output representation. This
+bounded per-layer capacity suggests representations at nearby layers
+cannot be &#34;totally different&#34;, yet the literature also shows
+early/middle/late layers serve distinct roles. We want the empirical
+heatmap — and its dependence on width/depth/regime — to settle *how*
+similar.
+
+## Hypothesis Decomposition
+- **H1 (primary)**: For trained MLPs on CIFAR-10, the cross-layer CKA
+  heatmap exhibits measurable structure: neither uniformly 1 nor
+  uniformly low. Specifically, adjacent-layer CKA is significantly higher
+  than far-apart-layer CKA.
+- **H2 (width amplifies similarity)**: Wider MLPs have higher
+  off-diagonal CKA (more similar representations) than narrow MLPs at
+  equal depth.
+- **H3 (depth induces block-like structure)**: Deeper MLPs exhibit
+  contiguous layer ranges with CKA ≳ 0.9, resembling block structure;
+  narrow/shallow MLPs do not.
+- **H4 (metric agreement)**: Linear CKA, sample-wise cosine similarity,
+  and orthogonal Procrustes broadly agree on the ranking of layer
+  similarity — if they disagree, CKA is the outlier (per Davari 2022).
+- **H5 (rich vs. lazy)**: Configurations with small
+  `‖θ_final - θ_init‖ / ‖θ_init‖` (lazy) have higher inter-layer
+  similarity than rich-regime configurations of equal capacity.
+- **H6 (dominant datapoints)**: If a configuration shows block-like
+  structure, dropping the top-decile high-norm probe samples reduces the
+  apparent CKA in those blocks (replicates Nguyen 2022 for MLPs).
+
+Independent variables: depth, width, nonlinearity (ReLU first, optional
+GeLU ablation), init scale (controls rich/lazy), dataset (CIFAR-10,
+MNIST). Dependent variables: cross-layer CKA heatmap, cosine sample
+similarity, Procrustes distance, PC-1 variance ratio per layer, linear
+probe accuracy per layer, `‖Δθ‖/‖θ_0‖`.
+
+## Proposed Methodology
+
+### Approach
+Train a family of ReLU MLPs with systematic (depth, width) variation on
+CIFAR-10 (primary) and MNIST (secondary). After training, extract
+post-activation hidden states on a held-out 5k-sample probe set for every
+hidden layer. Compute a suite of representation-similarity metrics and
+visualize layer × layer heatmaps.
+
+### Experimental Steps
+1. **Data pipeline**: download CIFAR-10 and MNIST via torchvision; flatten
+   to vectors; normalize with per-pixel mean/std from train set; fixed
+   5k-sample probe set from the test split.
+2. **Model family**: `MLP(depths, width)` with `input → Linear → ReLU`
+   repeated `depth` times → `Linear → num_classes`. We keep **constant
+   width** across hidden layers to match the &#34;layer-similarity&#34; framing
+   (varying-width MLPs would introduce free parameters in the metrics).
+3. **Training protocol**: Adam, lr=1e-3, batch=256, 40 epochs CIFAR /
+   20 MNIST, weight-decay 5e-4, cosine LR schedule, random seed fixed,
+   3 seeds per configuration for variability. Early-stop on val loss
+   patience=6. Save final model and checkpoints at init+best.
+4. **Extraction**: in eval mode, dropout off, forward probe set,
+   concatenate per-layer post-ReLU activations.
+5. **Metrics**:
+   - **Linear CKA** (Kornblith 2019 formula; full-batch on 5k probe).
+   - **Sample-wise cosine similarity** (mean cosine between rows of L_i
+     and L_j after centering; Jiang 2024).
+   - **Orthogonal Procrustes distance** (after per-layer width
+     projection via PCA to min(d_i, d_j) dims — see robustness).
+   - **PC-1 variance ratio** per layer (PCA on 5k activations).
+   - **Linear probe accuracy** per layer (ℓ2-regularized logistic
+     regression with 5-fold on probe set).
+   - **CKA to initialization**: use the initial weights&#39; forward pass as
+     the &#34;init state&#34; for regime analysis.
+   - **‖θ_final − θ_init‖ / ‖θ_init‖** per parameter block and averaged.
+6. **Baselines**: same MLPs at **random init** (untrained); **shuffled-
+   label control** (trained on random labels — gives rich-regime without
+   task structure); **different seeds** (variability).
+7. **Ablations**: rich-vs-lazy by varying init scale α ∈ {0.25, 1.0, 4.0}
+   on one representative (depth=8, width=512); dominant-datapoint
+   ablation on the same configuration.
+
+### Baselines
+- Untrained-random-init MLP (same architecture).
+- Multi-seed replicates (3 seeds) of the same configuration.
+- Shuffled-label trained MLP (rules out &#34;task itself drives similarity&#34;).
+
+### Evaluation Metrics
+Primary: Linear CKA layer × layer matrix; diagonal = 1 by construction.
+Secondary: Procrustes distance, sample-wise cosine similarity,
+PC-1 variance ratio. Task-functional: linear probe accuracy per layer.
+Regime: `‖θ_final − θ_init‖ / ‖θ_init‖`.
+
+### Statistical Analysis Plan
+- All similarity heatmaps reported as mean ± std over 3 seeds.
+- Test H1 with paired t-test comparing adjacent-layer CKA vs. far-layer
+  (k=1 vs. k≥3) CKA, Holm-Bonferroni over (depth, width).
+- Test H2 (width → more similarity) via Spearman ρ between width and
+  off-diagonal CKA at fixed depth.
+- Test H4 (metric agreement) via Spearman correlation between CKA and
+  cosine / Procrustes rankings of layer pairs.
+- Significance α = 0.05 per-family, with multiple-comparison correction.
+
+## Expected Outcomes
+Based on the literature:
+- Some measurable structure: adjacent-layer CKA ≳ 0.9, distant-layer
+  CKA ≲ 0.6. (Supports hypothesis.)
+- Width amplifies similarity: wider MLPs have flatter heatmaps.
+- Very deep narrow MLPs (depth≥16, width≤256) show less block-like
+  structure than wide ones.
+- Metrics agree in **rank** but differ in **absolute values**.
+- Lazy regime has uniformly high CKA (trivially); rich regime separates.
+
+## Timeline and Milestones
+- Env + data download: 10 min.
+- Coding MLP + training loop + metrics: 30 min.
+- Smoke test (depth=4, width=256, 2 epochs): 5 min.
+- Full sweep CIFAR-10 (3 depths × 3 widths × 3 seeds = 27 runs × 40
+  epochs ≈ 45 min on A6000). MNIST similar but faster.
+- Rich-vs-lazy + dominant-point ablation: 15 min.
+- Analysis + plots: 30 min.
+- REPORT.md + README.md: 25 min.
+
+Total budget: ~2.5 hours of compute, plus analysis/writing.
+
+## Potential Challenges
+- **GPU sharing**: 4× A6000 visible but first one has 15 GB used. We&#39;ll
+  default to CUDA:1.
+- **MLP overfitting CIFAR-10**: raw-pixel MLPs hit ~55 % test accuracy;
+  that&#39;s fine for representation analysis, but we should not
+  over-interpret task accuracy.
+- **CKA numerical instability for near-zero activations**: we&#39;ll clip
+  activations to avoid division-by-near-zero in the HSIC denominator.
+- **Probe set size vs. CKA reliability**: 5k samples follows Kornblith
+  2019; Davari 2022 notes small subsets manipulate CKA — we use the
+  whole probe set for every comparison (no resampling).
+- **Init-scale sensitivity**: rich/lazy is knife-edge. We pick init
+  scales that demonstrably straddle the transition.
+
+## Success Criteria
+- Clear, readable layer × layer heatmap figures for each
+  (depth, width) on CIFAR-10 + MNIST.
+- Quantitative evidence supporting or refuting each of H1–H6.
+- Cross-metric robustness check (at least CKA + cosine + Procrustes).
+- Reproducible code with seeded runs in `src/`, `results/`, `figures/`.
+- REPORT.md with actual numbers, figures, and clear answer to research
+  question.
+
+## Preregistered Decisions (to avoid p-hacking)
+- Widths fixed up-front: {128, 512, 2048}.
+- Depths fixed up-front: {4, 8, 16}.
+- Seeds fixed up-front: {0, 1, 2}.
+- Probe set: first 5 000 examples of test split, fixed order.
+- Primary metric: linear CKA; all hypothesis tests use it.
+- Secondary metrics are reported regardless of whether they agree.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          LITERATURE REVIEW
+════════════════════════════════════════════════════════════════════════════════
+
+# Literature Review: How similar are MLP hidden states to each other?
+
+## Research Area Overview
+
+The central question — *how similar are the hidden representations at
+different layers of a multi-layer perceptron?* — sits at the intersection of
+three active research threads:
+
+1. **Representation-similarity methodology** (how to even measure similarity
+   between two n×p activation matrices when the two layers may have
+   different widths and the notion of &#34;similarity&#34; is ill-defined).
+2. **Empirical cross-layer studies of deep networks** (what the heatmaps
+   actually look like for real trained networks: CNNs, ResNets, transformers,
+   and MLPs).
+3. **Theoretical analysis of feature learning in MLPs** (why representations
+   should or should not differ across layers, from neural-tangent-kernel
+   theory to fixed-point analyses of deep nonlinear networks).
+
+The literature consistently reports a recurring finding: **layer
+representations are neither identical nor totally different — there is
+measurable structure.** Most notably a **block structure** emerges in
+over-parameterized networks, where large contiguous runs of layers have
+CKA ≈ 1, while the first few and last few layers remain distinguishable.
+The research hypothesis in this project is a direct restatement of this
+finding, applied specifically to pure MLPs.
+
+---
+
+## Key Papers
+
+### Paper 1: CKA — Similarity of Neural Network Representations Revisited
+- **Authors**: Simon Kornblith, Mohammad Norouzi, Honglak Lee, Geoffrey Hinton
+- **Year**: 2019 · ICML · arXiv:1905.00414 · 2000+ citations
+- **Key contribution**: Introduces **Centered Kernel Alignment (CKA)**. Proves
+  that any similarity index invariant to invertible linear transformation
+  becomes useless when representation width exceeds dataset size (Theorem 1)
+  — ruling out CCA for wide modern networks. CKA is invariant only to
+  orthogonal transformation and isotropic scaling.
+- **Formula**: `CKA(K, L) = HSIC(K, L) / sqrt(HSIC(K, K) · HSIC(L, L))`
+  where `K = XX^T`, `L = YY^T` for centered activations.
+- **Key findings** relevant to our hypothesis:
+  - CKA reliably identifies corresponding layers across different random
+    initializations and architectures.
+  - **Wider networks learn more similar representations**; similarity of
+    earlier layers saturates faster than later layers.
+  - CIFAR-10 and CIFAR-100-trained networks share highly similar **early**
+    representations but diverge in later layers.
+  - For 8× depth networks, CKA exposes pathological plateaus (adjacent
+    layers with CKA ≈ 1).
+- **Code**: Reference in `google-research/similarity/`; PyTorch port in
+  `code/PyTorch-Model-Compare/` and `code/anatome/`.
+
+### Paper 2: SVCCA
+- **Authors**: Raghu, Gilmer, Yosinski, Sohl-Dickstein · NeurIPS 2017
+- **Year**: 2017 · arXiv:1706.05806 · 800+ citations
+- **Key contribution**: **Singular Vector Canonical Correlation Analysis**.
+  Treats each neuron as a vector over the dataset, layers as subspaces. SVD
+  prunes low-variance directions, then CCA aligns subspaces.
+- **Key findings**:
+  - Learned intrinsic dimensionality is **much smaller** than layer width —
+    an MLP with 200 neurons per layer may use only 10–30 effective
+    directions.
+  - Networks converge **bottom-up**: lower layers solidify first, later
+    layers keep evolving.
+  - SVCCA subspaces are distributed across many neurons, validating that
+    neuron-aligned analyses miss structure.
+- **Limitation**: CCA-style measures fail for wide networks (Kornblith 2019
+  Theorem 1); use only with per-layer SVD truncation.
+
+### Paper 3: Do Wide and Deep Networks Learn the Same Things?
+- **Authors**: Nguyen, Raghu, Kornblith · ICLR 2021
+- **Year**: 2020/2021 · arXiv:2010.15327 · 300+ citations
+- **Key contribution**: Identifies the **block structure phenomenon** and
+  introduces a **minibatch CKA estimator** for large networks.
+- **Key findings directly relevant to our hypothesis**:
+  - Over-parameterized ResNets develop **contiguous blocks of layers with
+    CKA ≈ 1**; representations outside the blocks are similar across models
+    of different sizes but block-interior representations are
+    **model-specific** (seed-dependent).
+  - Block structure appears when model capacity is **large relative to the
+    training set**. Narrow/shallow networks do not show it.
+  - Inside a block, a **single dominant principal component** explains most
+    of the variance and is preserved across layers.
+  - Some block-structure layers can be pruned with no accuracy loss.
+- **Implication for MLPs**: the hypothesis that &#34;MLP hidden states are not
+  totally different&#34; is empirically consistent with this — MLPs with large
+  capacity should exhibit block structure; narrower/shallower ones should
+  not.
+
+### Paper 4: On the Origins of Block Structure
+- **Authors**: Nguyen, Raghu, Kornblith · 2022 · arXiv:2202.07184
+- **Key contribution**: Explains *why* the block structure arises.
+- **Key findings**:
+  - The dominant first PC inside each block is driven by a **small set of
+    &#34;dominant datapoints&#34;** sharing trivial image statistics (background
+    color, brightness).
+  - Dominant datapoints produce high activation norms in block layers.
+  - Different seeds pick different dominant datapoints — explaining
+    block-structure inconsistency across runs.
+  - Blocks can be **eliminated** via PC-regularization, transfer learning,
+    or Shake-Shake regularization without hurting accuracy.
+
+### Paper 5: Vision Transformers See Differently from CNNs (ViT vs CNN)
+- **Authors**: Raghu et al. 2021 · arXiv:2108.08810 · 1300+ citations
+- **Key findings**:
+  - ViTs show **much more uniform CKA across layers** than CNNs — i.e. the
+    transformer&#39;s MLP+attention stacks give more similar hidden states
+    between early and late layers.
+  - Skip connections drive this uniformity; removing them makes CKA look
+    CNN-like.
+- **Implication**: for transformer-style networks whose core is stacked
+  MLPs with residual streams, the MLP hidden states should be
+  systematically more similar than in plain MLPs.
+
+### Paper 6: Tracing Representation Progression
+- **Authors**: Jiang, Zhou, Zhu · arXiv:2406.14479 · 22+ citations
+- **Key findings for transformers**:
+  - **Simple sample-wise cosine similarity tracks CKA** and is much cheaper
+    to compute. Per-sample similarity between layers increases as layers
+    get closer.
+  - Proves this is a consequence of the geodesic-curve property of
+    residual networks.
+  - Because of this increasing similarity, the last-layer classifier can be
+    directly applied to any hidden layer (&#34;logit lens&#34;), producing the
+    **saturation events** of Geva et al. — a token&#39;s top prediction often
+    stabilizes several layers before the end.
+
+### Paper 7: Self-similarity Analysis in Deep Neural Networks
+- **Authors**: Ding et al. · 2025 · arXiv:2507.17785
+- **Key findings relevant to MLPs**:
+  - Constructs a graph `G_M` from per-layer hidden features, quantifies
+    **hierarchical self-similarity** with the `SS_rate` metric.
+  - Finds that **MLPs, CNNs, and attention models exhibit different
+    degrees of self-similarity** — the degree varies with architecture.
+  - Self-similarity generally **degrades during training**.
+  - An `SS_rate` regularizer improves MLP and attention model accuracy by
+    up to 6%.
+- Most directly on-topic paper for the project&#39;s hypothesis.
+
+### Paper 8: One Wide Feedforward Is All You Need
+- **Authors**: Pessoa Pires et al. · arXiv:2309.01826 · 20+ citations
+- **Key findings**:
+  - Transformer FFNs across layers are **highly redundant**. Sharing a
+    single FFN across all encoder layers and **removing** decoder FFNs
+    preserves accuracy within 1 BLEU.
+  - Internal CKA stays stable when FFNs are shared — direct empirical
+    support that per-layer MLPs are doing similar work.
+
+### Paper 9: Learning richness modulates equality reasoning in MLPs
+- **Authors**: Tong &amp; Pehlevan · 2025 · arXiv:2503.09781
+- **Key contribution**: Mathematical theory of MLP feature learning on
+  same-different tasks.
+- **Relevant findings**:
+  - **Rich-regime** MLPs learn conceptual, task-specific representations
+    that differ substantially across layers.
+  - **Lazy-regime** MLPs (small initialization scale, NTK behavior) keep
+    representations close to their random initialization — layers remain
+    statistically similar because none of them transform features much.
+- **Direct implication**: the hypothesis (&#34;limited individual transformation
+  capacity causes MLP hidden states to be similar&#34;) corresponds to the
+  lazy regime, whereas richly-trained MLPs can produce more distinct
+  per-layer representations.
+
+### Paper 10: Emergence of Globally Attracting Fixed Points in Deep NNs
+- **Authors**: arXiv:2410.20107 · 2024
+- **Key finding**: Under broad assumptions, deep nonlinear networks drive
+  hidden states toward a **globally attracting fixed point** in feature
+  space. This provides a formal mechanism for MLP hidden states to
+  converge in similarity as depth grows.
+
+### Paper 11: Inter-layer Information Similarity (NNTS/NNTP)
+- **Authors**: Hryniowski, Wong · 2020 · arXiv:2012.03793
+- **Key contribution**: Nearest-Neighbour Topological Similarity and
+  Persistence. Builds a local k-NN graph per layer, compares graphs across
+  layers.
+- **Relevant finding**: In LeNet-5 on MNIST, atomic operations **within the
+  same layer** produce neighbourhoods more similar to each other than to
+  operations outside the layer — quantitatively validates the conventional
+  layer partitioning.
+
+### Paper 12: Reliability of CKA
+- **Authors**: Davari, Horoi, Natik, Lajoie, Wolf, Belilovsky · 2022 ·
+  arXiv:2210.16156
+- **Important caveat**: Proves CKA is highly sensitive to translations of
+  small subsets (outliers) and linear-separability-preserving transformations.
+  Shows CKA values can be moved up or down **without changing the network
+  function**. Use CKA together with alternative metrics (cosine, NSA,
+  Procrustes) to avoid being fooled.
+
+### Paper 13: Normalized Space Alignment
+- **Authors**: Ebadulla, Gulati, Singh · 2024 · arXiv:2411.04512
+- **Key contribution**: NSA = Local NSA + Global NSA. Distance-preserving,
+  differentiable, handles different dimensions, quadratic in #points.
+- **Relevant use**: serves as a robustness check on CKA conclusions and can
+  be used as a **loss function** if we want to train MLPs with controlled
+  inter-layer structural similarity.
+
+### Paper 14: Understanding Inner Workings of LMs via Representation
+Dissimilarity
+- **Authors**: Brown, Godfrey, Konz, Tu, Kvinge · 2023 · arXiv:2310.14993
+- **Relevant findings**:
+  - **Block structure appears in generative Transformers** (Pythia family
+    70M–1B) — not just CNNs.
+  - Model stitching reveals asymmetries between GeLU and SoLU
+    representations that CKA alone cannot detect.
+  - One model, pythia-2.8b-deduped, has anomalously low inter-model
+    similarity despite normal benchmark performance.
+
+### Paper 15: Batch Normalization Orthogonalizes Representations
+- **Authors**: 2021 · arXiv:2106.03970
+- **Relevant finding**: BN pushes covariance of hidden states toward
+  isotropy, which can **raise** CKA between layers independently of
+  learned features. Choice of normalization matters for reproducibility.
+
+### Paper 16: MLP-Mixer &amp; Understanding MLP-Mixer
+- **Original**: Tolstikhin et al. 2021 · arXiv:2105.01601
+- **Understanding**: arXiv:2306.01470
+- **Relevance**: MLP-Mixer is a strong modern example of deep MLP stacks.
+  Understanding it as a &#34;wide sparse MLP&#34; lets us import theoretical tools
+  (permutation-equivariance, block structure) when testing our hypothesis.
+
+### Other papers (reviewed via abstract only)
+- **SVCCA for LMs** (Saphra &amp; Lopez 2018): SVCCA across training time.
+- **MPruner** (2024): uses CKA between consecutive layers to prune — shows
+  redundancy directly.
+- **LAYA** (2025): aggregates all intermediate layers for prediction,
+  ablation signal for inter-layer information redundancy.
+- **Curvature-based Comparison** (Yu, Long, Hopcroft 2018): Riemann and
+  sectional curvature on fully-connected-layer activation manifolds.
+- **Subspace Clustering Based Analysis** (2021): cluster neurons per layer,
+  measure between-layer subspace overlap.
+- **Graph-Based Similarity** (2021): graph representation for per-layer
+  activations.
+
+---
+
+## Common Methodologies
+
+- **CKA (linear and RBF)**: the default choice in every recent paper. Use
+  the minibatch estimator (Nguyen et al. 2021) for large networks.
+- **SVCCA / PWCCA**: still useful for narrow networks or when you want
+  direction-level analysis.
+- **Cosine similarity (sample-wise)**: for residual architectures where
+  representation dimension stays constant, cosine captures what CKA does
+  at a fraction of the cost (Jiang et al. 2024).
+- **Model stitching**: measures functional similarity rather than
+  statistical similarity — a strong complement to CKA.
+- **NSA, NNTS/NNTP**: emerging alternatives that respect local structure
+  better and sidestep CKA&#39;s outlier sensitivity.
+- **PC / variance-explained analysis**: diagnose block structure by
+  checking if a single PC dominates each layer.
+
+## Standard Baselines
+
+Any paper studying cross-layer similarity in MLPs should report at minimum:
+- **Random init MLP** (untrained) — Kornblith 2019 Fig 7 shows untrained
+  networks have very different CKA profiles from trained ones.
+- **Linear classifier probes** per layer — gives a task-performance handle
+  on representation quality (Alain &amp; Bengio 2016 style).
+- **Different widths/depths** of the same MLP family — to reproduce the
+  block-structure onset and width-saturation effects.
+- **Different random seeds** — block-interior representations are
+  seed-specific; narrow/shallow ones are seed-stable.
+
+## Evaluation Metrics
+
+- **Layer × layer CKA heatmap** (primary visualization).
+- **Variance explained by first PC per layer** (diagnoses block structure
+  mechanism).
+- **Sample-wise cosine similarity between layer L and layer L+k**.
+- **k-NN overlap (NNTS / LNS)**.
+- **CKA to initialization** across training — reveals lazy vs. rich regime.
+- **Linear probe accuracy** at each layer.
+
+## Datasets in the Literature
+
+- **CIFAR-10, CIFAR-100** — universal benchmarks for CKA/SVCCA/block studies
+  (Kornblith 2019; Nguyen 2020, 2022; Raghu 2021).
+- **MNIST / FashionMNIST** — used by SVCCA, Inter-layer Information
+  Similarity for LeNet-scale analyses.
+- **ImageNet** — Nguyen 2020 for large-scale confirmation.
+- **Patch Camelyon (medical imaging)** — Nguyen 2022 for domain-shift
+  confirmation of block structure.
+- **Pile / WMT** — for LM-focused analyses.
+- **Synthetic regression** — SVCCA&#39;s toy task; Equality-Reasoning-in-MLPs&#39;
+  same-different task.
+
+## Gaps and Opportunities
+
+1. **Pure MLP focus is under-served.** The empirical literature almost
+   exclusively studies CNNs, ResNets, and transformers. Block-structure and
+   layer-similarity results for **pure MLPs** on standard datasets are not
+   extensively tabulated. This project can fill that gap cleanly.
+2. **Rich vs. lazy regime × layer similarity** is theoretically predicted
+   (Tong &amp; Pehlevan 2025) but not empirically mapped across architectures.
+3. **Cross-metric consistency for MLPs**: given the CKA reliability
+   critique (Davari 2022), confirming findings with CKA + NSA + cosine +
+   Procrustes + NNTS on the same MLPs would strengthen any conclusions.
+4. **Role of normalization &amp; width** in MLP similarity: theorists have shown
+   BN orthogonalizes (Daneshmand 2021), but empirical heatmaps for
+   wide-shallow vs. narrow-deep MLPs are sparse.
+
+## Recommendations for Our Experiment
+
+Based on the literature review, the most informative and reproducible
+experiment looks like:
+
+- **Recommended primary dataset**: CIFAR-10 (and optionally MNIST for a
+  quick second task). The test split (10k examples) provides the probe
+  set. Directly comparable to Kornblith 2019, Nguyen 2020, 2022.
+- **Recommended architecture family**: a single MLP &#34;class&#34; parametrized
+  by (depth, width) — e.g. inputs → [width]*depth → softmax, with ReLU or
+  GeLU nonlinearities. Scan depth ∈ {4, 8, 16, 32} and width ∈ {64, 256,
+  1024, 4096}. This mirrors the exact &#34;wide vs. deep&#34; sweep of Nguyen 2020
+  but restricted to MLPs.
+- **Recommended baselines**:
+  - Same MLP at random initialization (shows training-induced similarity).
+  - Same MLP with different seeds (measures seed variability → relates to
+    block-structure dominant-datapoint phenomenon).
+  - Linear-probe accuracy per layer (task-functional signal).
+- **Recommended metrics** (in order of priority):
+  1. **Linear CKA** (minibatch estimator; batch size 256) — primary.
+  2. **Sample-wise cosine similarity** — cheap confirmation.
+  3. **Variance explained by 1st PC per layer** — diagnoses block structure.
+  4. **NSA** or **Procrustes** — CKA-reliability safety net.
+  5. Optional: **NNTS** for local-structure perspective.
+- **Methodological considerations**:
+  - Use the same probe set across all layer comparisons.
+  - Normalize inputs consistently (Kornblith 2019 conventions).
+  - Track CKA across **training time** (not just at convergence) to
+    distinguish representation change from initialization artifact.
+  - Be explicit about whether you are in the rich or lazy regime (track
+    ||θ_final - θ_init|| relative to ||θ_init||; Chizat &amp; Bach 2019).
+  - Report multiple metrics — do not rely on linear CKA alone.
+
+### Expected findings (from literature) that the experiments should
+confirm or refute
+
+- As MLP depth grows, we should see **block-like structure** emerge —
+  consecutive hidden layers becoming highly similar under CKA — especially
+  when width is large relative to the dataset or when training is very
+  deep.
+- Early layers should be more similar across different random seeds than
+  middle/late layers.
+- Representations should become **more similar between different MLPs as
+  width grows** (Kornblith 2019 Fig 6 for CNNs → plausibly replicated for
+  MLPs).
+- There should be a **non-trivial distance from the last layer back
+  toward the input**, confirming that MLP hidden states are not
+  all-identical.
+- Rich-regime training should produce more distinct cross-layer
+  representations than lazy-regime training.
+
+These together answer the original hypothesis: the hidden spaces of MLPs
+at different layers are **not totally different** (there is broad
+similarity, growing with width/depth/capacity) **but there are measurable
+differences** (early vs. late layers diverge, rich regimes separate
+layers, low-variance directions are not preserved).
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          PAPER REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+Generate a complete academic paper with the following structure:
+
+1. TITLE
+   - Clear, specific, informative
+   - Should convey main finding or contribution
+
+2. AUTHOR
+   - Use this exact author line in the \author{} block: Ari Holtzman and NeuriCo
+
+3. ABSTRACT (150-250 words)
+   - Problem statement
+   - Approach
+   - Key results
+   - Significance
+
+4. INTRODUCTION
+   - Research problem and motivation
+   - Gap in existing work
+   - Our contribution (be specific)
+   - Paper organization
+
+5. RELATED WORK
+   - Organized by theme/approach
+   - Position our work relative to prior work
+   - Cite papers from literature review
+
+6. METHODOLOGY
+   - Clear description of approach
+   - Experimental setup
+   - Datasets used
+   - Evaluation metrics
+   - Baselines
+
+7. RESULTS
+   - Present results with tables and figures
+   - Statistical analysis
+   - Comparison to baselines
+   - Ablation studies (if applicable)
+
+8. DISCUSSION
+   - Interpretation of results
+   - Limitations
+   - Broader implications
+
+9. CONCLUSION
+   - Summary of contributions
+   - Key findings
+   - Future work
+
+10. REFERENCES
+   - BibTeX format
+   - All cited papers
+
+════════════════════════════════════════════════════════════════════════════════
+                          OUTPUT FORMAT
+════════════════════════════════════════════════════════════════════════════════
+
+Create a MODULAR LaTeX project with the following directory structure:
+
+paper_draft/
+├── main.tex              # Main file that imports all sections
+├── references.bib        # BibTeX references
+├── sections/
+│   ├── abstract.tex      # Abstract content
+│   ├── introduction.tex  # Introduction section
+│   ├── related_work.tex  # Related work section
+│   ├── methodology.tex   # Methodology section
+│   ├── results.tex       # Results section
+│   ├── discussion.tex    # Discussion section
+│   └── conclusion.tex    # Conclusion section
+├── figures/              # Directory for any generated figures
+├── tables/               # Directory for complex standalone tables
+└── appendix/             # Directory for appendix sections (if needed)
+
+INSTRUCTIONS:
+1. First, create the directory structure above (mkdir -p paper_draft/sections paper_draft/figures paper_draft/tables paper_draft/appendix)
+2. Write main.tex using the EXACT preamble for NEURIPS:
+
+   \documentclass{article}
+   \usepackage[final]{neurips_2025}  % NEURIPS style (neurips_2025.sty is in paper_draft/)
+   \usepackage[hidelinks]{hyperref}  % REQUIRED: clickable links
+   \usepackage{booktabs}  % REQUIRED: professional tables
+   \usepackage{graphicx}
+   \usepackage{amsmath,amssymb}
+
+   % Import command files
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+   % Use this bibliography style:
+   \bibliographystyle{plainnat}
+
+   \author{Ari Holtzman and NeuriCo}
+
+   - Use \input{sections/...} to include each section
+   - Use \bibliography{references} for references
+3. Write each section file with COMPLETE content (no placeholders)
+4. Each section file should include its \section{} command
+5. Write references.bib with all citations in BibTeX format
+6. After writing all files, compile the paper:
+   cd paper_draft && pdflatex -interaction=nonstopmode main.tex && bibtex main && pdflatex -interaction=nonstopmode main.tex && pdflatex -interaction=nonstopmode main.tex
+
+This modular structure allows humans to easily:
+- Edit individual sections without navigating a large file
+- Track changes per section
+- Reuse sections across different paper versions
+
+════════════════════════════════════════════════════════════════════════════════
+                          QUALITY REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+- Academic tone throughout
+- All claims must be supported by data from the experiment report
+- Proper citations using \cite{} commands
+- Clear figures and tables with proper captions
+- NO placeholder text - every section must have real content
+- The paper MUST compile without errors
+- If compilation fails, debug and fix the LaTeX errors
+
+════════════════════════════════════════════════════════════════════════════════
+                          LAB WRITING STYLE
+════════════════════════════════════════════════════════════════════════════════
+
+Follow these lab-specific conventions to match our paper style:
+
+1. LANGUAGE STYLE:
+   - Use active voice: "We propose", "We examine", "We focus on"
+   - Be direct and confident: "Our main question is...", "We hypothesize that..."
+   - State things clearly and simply - prefer plain language over jargon
+   - Use bold questions as paragraph organizers: {\bf what is X?}
+   - Include specific quantitative claims: "8.97% over baseline"
+   - Avoid fancy wording: "utilize" → "use", "facilitate" → "help"
+
+2. INTRODUCTION STRUCTURE:
+   - Engaging hook (get to the point quickly)
+   - Problem importance
+   - Gap identification
+   - Your approach with method figure reference
+   - Quantitative preview of results
+   - Contribution bullets (3-4 items, action verbs)
+
+3. CONTRIBUTION LISTS:
+   \begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+       \item We propose...
+       \item We conduct...
+       \item We complement...
+   \end{itemize}
+
+4. MODULAR COMMANDS STRUCTURE:
+   Command templates are pre-copied to paper_draft/commands/:
+   - math.tex: Math notation macros
+   - general.tex: Formatting macros
+   - macros.tex: Project-specific term definitions (customize this for your paper)
+
+   In main.tex, include:
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+5. REFERENCE CONVENTIONS:
+   Use reference macros from math.tex:
+   - \figref{fig:name} for "figure 1" (lowercase, in-sentence)
+   - \Figref{fig:name} for "Figure 1" (capitalized, start of sentence)
+   - \secref{sec:name} for "section 2"
+
+6. TEXT FORMATTING:
+   - Use \para{Header text} for bold paragraph headers
+   - Define method/dataset names with \textsc and \xspace:
+     \newcommand{\methodname}{\textsc{MethodName}\xspace}
+
+7. TABLE FORMATTING:
+   - Use booktabs package (no vertical lines)
+   - Use \resizebox{\textwidth}{!}{...} for wide tables
+   - Use @{} to remove padding at table edges
+   - Use \cmidrule(lr){x-y} for sub-headers
+   - Use \textsc{} for dataset/method names in headers
+   - Bold best results with {\bf ...}
+
+8. FIGURE FORMATTING:
+   - Use 0.32\textwidth for 3-column subfigures
+   - Use 0.95\linewidth for full-width figures
+   - Use \input{figures/legend} for shared legends
+   - Write self-contained captions explaining key observations
+
+9. RESULTS PRESENTATION:
+   - Define \increase and \decrease for colored arrows (green up, red down)
+   - Bold best results in tables
+   - Report confidence intervals when available
+
+10. ALGORITHM STYLING:
+    - Use algpseudocode with [noend]
+    - Use \triangleright for comments
+
+11. HYPERLINKS (REQUIRED):
+    - Always use \usepackage[hidelinks]{hyperref} or with colored links
+    - All citations, section refs, figure refs, table refs must be clickable
+    - This is essential for reader navigation
+
+════════════════════════════════════════════════════════════════════════════════
+                          WORKFLOW: REVIEW AND REFLECT
+════════════════════════════════════════════════════════════════════════════════
+
+Before calling finish, you MUST complete these review steps:
+
+1. REVIEW RESOURCES (at the start):
+   - Read .claude/skills/paper-writer/SKILL.md for detailed guidance
+   - Study templates/paper_writing/lab_style_guide.md for style conventions
+   - Browse paper_examples/ for formatting and language patterns
+
+2. SELF-REFLECTION (before finishing):
+   After writing all sections, review your work against these criteria:
+
+   LANGUAGE CHECK:
+   - [ ] Is the writing clear and jargon-free?
+   - [ ] Are claims specific with quantitative support?
+   - [ ] Is active voice used throughout?
+
+   FORMATTING CHECK:
+   - [ ] Does main.tex include \input{commands/math}, \input{commands/general}, \input{commands/macros}?
+   - [ ] Is hyperref package included for clickable references?
+   - [ ] Do tables use booktabs (no vertical lines)?
+   - [ ] Are best results bolded in tables?
+   - [ ] Are figures/tables properly captioned?
+
+   STRUCTURE CHECK:
+   - [ ] Does introduction follow: hook → importance → gap → approach → preview → contributions?
+   - [ ] Are contribution bullets specific with action verbs?
+   - [ ] Does the paper compile without errors?
+
+3. FIX ISSUES:
+   - Address any issues found in the self-reflection
+   - Re-compile and verify the PDF looks correct
+
+Only after completing this review should you consider the paper finished.

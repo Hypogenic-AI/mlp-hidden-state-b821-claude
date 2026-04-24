@@ -1,0 +1,145 @@
+{
+  "CKA_Kornblith_2019": {
+    "arxiv": "1905.00414",
+    "doi": null,
+    "pdf": "",
+    "title": "Similarity of Neural Network Representations Revisited",
+    "year": 2019
+  },
+  "SVCCA_Raghu_2017": {
+    "error": "HTTP Error 429: "
+  },
+  "CKA_Inadequacy_2022": {
+    "arxiv": null,
+    "doi": null,
+    "pdf": "",
+    "title": "O N THE I NADEQUACY OF CKA AS A M EASURE OF S IMILARITY IN D EEP L EARNING",
+    "year": 2022
+  },
+  "WideDeep_Nguyen_2020": {
+    "arxiv": "2010.15327",
+    "doi": null,
+    "pdf": "",
+    "title": "Do Wide and Deep Networks Learn the Same Things? Uncovering How Neural Network R",
+    "year": 2020
+  },
+  "BlockStructure_Origins_2022": {
+    "arxiv": "2202.07184",
+    "doi": null,
+    "pdf": "",
+    "title": "On the Origins of the Block Structure Phenomenon in Neural Network Representatio",
+    "year": 2022
+  },
+  "SelfSimilarity_2025": {
+    "arxiv": "2507.17785",
+    "doi": "10.48550/arXiv.2507.17785",
+    "pdf": "",
+    "title": "Self-similarity Analysis in Deep Neural Networks",
+    "year": 2025
+  },
+  "ViT_vs_CNN_Raghu_2021": {
+    "arxiv": "2108.08810",
+    "doi": null,
+    "pdf": "",
+    "title": "Do Vision Transformers See Like Convolutional Neural Networks?",
+    "year": 2021
+  },
+  "TracingRepProgression_2024": {
+    "error": "HTTP Error 429: "
+  },
+  "OneWideFFN_2023": {
+    "error": "HTTP Error 429: "
+  },
+  "InterLayerInfoSim_2020": {
+    "error": "HTTP Error 429: "
+  },
+  "MLPMixer_Wide_Sparse_2023": {
+    "arxiv": "2306.01470",
+    "doi": null,
+    "pdf": "",
+    "title": "Understanding MLP-Mixer as a wide and sparse MLP",
+    "year": 2023
+  },
+  "GloballyAttractingFP_2024": {
+    "error": "HTTP Error 429: "
+  },
+  "SubspaceClustering_2021": {
+    "arxiv": "2107.01296",
+    "doi": "10.1007/978-3-030-86523-8_42",
+    "pdf": "",
+    "title": "Subspace Clustering Based Analysis of Neural Networks",
+    "year": 2021
+  },
+  "CurvatureCompare_2018": {
+    "error": "HTTP Error 429: "
+  },
+  "DeepNetsPaths_2023": {
+    "arxiv": null,
+    "doi": null,
+    "pdf": "",
+    "title": "Deep Networks as Paths on the Manifold of Neural Representations",
+    "year": 2023
+  },
+  "GraphBasedSim_2021": {
+    "arxiv": "2111.11165",
+    "doi": null,
+    "pdf": "",
+    "title": "Graph-Based Similarity of Neural Network Representations",
+    "year": 2021
+  },
+  "SVCCA_LM_Edinburgh": {
+    "arxiv": null,
+    "doi": null,
+    "pdf": "",
+    "title": "Edinburgh Research Explorer Understanding Learning Dynamics Of Language Models w",
+    "year": null
+  },
+  "InnerWorkingsLM_RepDiss_2023": {
+    "arxiv": "2310.14993",
+    "doi": "10.48550/arXiv.2310.14993",
+    "pdf": "",
+    "title": "Understanding the Inner Workings of Language Models Through Representation Dissi",
+    "year": 2023
+  },
+  "EqualityReasoningMLP_2025": {
+    "arxiv": "2503.09781",
+    "doi": "10.48550/arXiv.2503.09781",
+    "pdf": "",
+    "title": "Learning richness modulates equality reasoning in neural networks",
+    "year": 2025
+  },
+  "NormalizedSpaceAlign_2024": {
+    "arxiv": "2411.04512",
+    "doi": "10.1145/3711896.3737065",
+    "pdf": "",
+    "title": "Normalized Space Alignment: A Versatile Metric for Representation Analysis",
+    "year": 2024
+  },
+  "BatchNormOrtho_2021": {
+    "error": "HTTP Error 429: "
+  },
+  "MPruner_CKA_2024": {
+    "arxiv": "2408.13482",
+    "doi": "10.48550/arXiv.2408.13482",
+    "pdf": "",
+    "title": "MPruner: Optimizing Neural Network Size with CKA-Based Mutual Information Prunin",
+    "year": 2024
+  },
+  "LAYA_2025": {
+    "arxiv": "2511.12723",
+    "doi": "10.48550/arXiv.2511.12723",
+    "pdf": "",
+    "title": "LAYA: Layer-wise Attention Aggregation for Interpretable Depth-Aware Neural Netw",
+    "year": 2025
+  },
+  "IndividualDifferences_DNN_2020": {
+    "arxiv": null,
+    "doi": "10.1038/s41467-020-19632-w",
+    "pdf": "https://www.nature.com/articles/s41467-020-19632-w.pdf",
+    "title": "Individual differences among deep neural network models",
+    "year": 2020
+  },
+  "SlidingWindowMerge_2025": {
+    "error": "HTTP Error 429: "
+  }
+}

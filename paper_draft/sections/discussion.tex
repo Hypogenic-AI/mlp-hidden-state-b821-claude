@@ -1,0 +1,42 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{Answering the motivating question}
+
+The motivating hypothesis was that MLP hidden states at different layers are ``not totally different'' because per-layer transformation capacity is limited, yet have ``measurable differences'' that can be compared. Our data supports all three components:
+
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+    \item \emph{Not totally different.} Off-diagonal \ckam never drops below 0.1, and mean off-diagonal CKA is always $\geq\!0.50$ on \cifar and $\geq\!0.77$ on \mnist. Three independent metrics agree on this.
+    \item \emph{Measurable differences.} Adjacent-layer CKA ($\approx\!0.86$ on \cifar) is significantly higher than far-layer CKA ($\approx\!0.46$) across the entire sweep ($p\!\ll\!10^{-3}$). The first hidden layer and the last hidden layer are reliably distinct from the rest.
+    \item \emph{Comparable across layers.} The CKA + Procrustes + cosine agreement and the clean block structure at $d\!=\!16$ show that cross-layer differences can be localized and quantified, not merely asserted.
+\end{itemize}
+
+\subsection{Why wider MLPs have \emph{less} similar layers}
+
+The most striking finding of this paper is the sign of the width--similarity relationship in shallow-to-moderate MLPs: \emph{wider MLPs produce more differentiated per-layer representations}, opposite to the well-known CNN finding of \citet{kornblith2019similarity}. The two results are compatible because they measure different things: \citet{kornblith2019similarity} compared representations of \emph{different models} with the same architecture family, finding wider networks more similar to each other; we compare representations of \emph{different layers within the same model}. Mechanistically, narrow MLPs face an unavoidable bottleneck---a single $\mathrm{Linear}_w \to \mathrm{ReLU}$ at $w\!=\!128$ cannot transform an arbitrary input representation into a qualitatively different one, so consecutive layers are forced to re-use the previous layer's features. Wider MLPs have enough per-layer capacity to apply distinct transformations layer by layer. The hypothesis prompt is vindicated: \emph{limited per-layer transformation capacity is exactly what pushes narrow-MLP layers to look alike}.
+
+\subsection{Why block structure appears at depth 16}
+
+At $d\!=\!16$, layers $2\!-\!14$ form a block with CKA close to 1, and width no longer drives CKA down. A natural interpretation---consistent with the \citet{pessoa2023onewide} redundancy finding for transformer FFNs---is that once the first $\sim\!2$ layers perform the feature extraction that the task requires, the remaining $\sim\!12$ layers act as a near-identity transport channel that preserves the representation until the final classifier. Pruning these middle layers should cost little accuracy, as in MPruner~\citep{park2024mpruner}.
+
+The \citet{nguyen2022origins} dominant-datapoint mechanism does not explain our block structure. In their CNN setting, excluding the top-decile high-norm probe samples reduced CKA by $\Delta \approx\!-0.15$. For our \mlp{8}{512} reference, the same ablation gives $\Delta\!=\!-0.011$---an order of magnitude smaller. Whatever drives block structure in pure MLPs, it is not a handful of dominant image statistics.
+
+\subsection{High CKA is not automatically a good thing}
+
+The rich-vs-lazy ablation makes a methodologically important point: the \emph{highest} mean off-diagonal CKA in our entire sweep (0.76) belongs to the lazy-regime run ($\alpha\!=\!4$), whose test accuracy is only 40\%. A lazy MLP is ``internally consistent'' because its layers all stay close to random initialization; this is failure-to-learn, not successful representation sharing. When reading cross-layer similarity numbers from the literature, regime diagnostics ($\|\Delta\theta\|/\|\theta_0\|$ or CKA-to-init) are essential context.
+
+\subsection{Limitations}
+
+\para{Architecture scope.} Our conclusions concern feed-forward ReLU MLPs on image classification. Transformers, CNNs, and ResNets have different inductive biases and likely different cross-layer similarity behavior (\citet{raghu2021vit} already shows ViTs are more uniform than CNNs, driven by skip connections). We do not claim our findings generalize beyond pure MLPs.
+
+\para{Training budget.} We trained for 15 epochs on \cifar; accuracy tops out around 55\%. Longer training may shift absolute CKA values but is unlikely to change the qualitative block-structure pattern, which is visible early in training.
+
+\para{Partial $d\!=\!16$, $w\!=\!2048$ sweep.} We deprioritized the largest deep configurations because of prohibitive SVD cost in Procrustes. The $d\!=\!16$, $w\!\in\!\{128, 512\}$ points already exhibit clear block structure, and we expect---but did not verify---that $w\!=\!2048$ would reinforce rather than challenge the conclusions.
+
+\para{Probe-set variation.} We used the Kornblith-convention 5{,}000 probe set, fixed across comparisons. We did not resample probe-set composition to quantify robustness, though \citet{davari2022reliability}'s concern is addressed in part by our multi-metric agreement.
+
+\para{Cosine comparison across widths.} Sample-wise cosine requires matching dimensions; our constant-width MLPs allow this, but we cannot directly compare cosine values across widths in a single figure.
+
+\subsection{Implications for practice}
+
+The findings suggest three concrete takeaways. (i)~For practitioners concerned with layer-wise probing or fine-tuning decisions, cross-layer CKA is informative but should be reported alongside a regime diagnostic. (ii)~For deep MLPs with block structure, middle-layer pruning is likely safe, replicating MPruner-style gains in a non-transformer setting. (iii)~For MLP-Mixer-style architectures, the expectation that FFN sublayers are redundant across layers is consistent with what we see in plain MLPs at depth 16.

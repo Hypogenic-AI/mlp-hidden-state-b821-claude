@@ -1,0 +1,104 @@
+{
+  "TracingRepProgression_2024": {
+    "arxiv_id": "2206.00583",
+    "title": "Calibrate and Debias Layer-wise Sampling for Graph Convolutional Networks",
+    "pdf_url": "https://arxiv.org/pdf/2206.00583v2",
+    "year": 2022
+  },
+  "OneWideFFN_2023": {
+    "arxiv_id": "2103.05236",
+    "title": "GAN Vocoder: Multi-Resolution Discriminator Is All You Need",
+    "pdf_url": "https://arxiv.org/pdf/2103.05236v2",
+    "year": 2021
+  },
+  "InterLayerInfoSim_2020": {
+    "arxiv_id": "2012.03793",
+    "title": "Inter-layer Information Similarity Assessment of Deep Neural Networks Via Topolo",
+    "pdf_url": "https://arxiv.org/pdf/2012.03793v1",
+    "year": 2020
+  },
+  "GloballyAttractingFP_2024": {
+    "arxiv_id": "2306.14753",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural",
+    "pdf_url": "https://arxiv.org/pdf/2306.14753v1",
+    "year": 2023
+  },
+  "DeepNetsPaths_2023": {
+    "arxiv_id": "2306.14753",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural",
+    "pdf_url": "https://arxiv.org/pdf/2306.14753v1",
+    "year": 2023
+  },
+  "GraphBasedSim_2021": {
+    "arxiv_id": "1609.04846",
+    "title": "A Tutorial about Random Neural Networks in Supervised Learning",
+    "pdf_url": "https://arxiv.org/pdf/1609.04846v1",
+    "year": 2016
+  },
+  "SVCCA_LM_Edinburgh": {
+    "arxiv_id": "1706.05806",
+    "title": "SVCCA: Singular Vector Canonical Correlation Analysis for Deep Learning Dynamics",
+    "pdf_url": "https://arxiv.org/pdf/1706.05806v2",
+    "year": 2017
+  },
+  "InnerWorkingsLM_RepDiss_2023": {
+    "arxiv_id": "2310.14993",
+    "title": "Understanding the Inner Workings of Language Models Through Representation Dissi",
+    "pdf_url": "https://arxiv.org/pdf/2310.14993v1",
+    "year": 2023
+  },
+  "EqualityReasoningMLP_2025": {
+    "arxiv_id": "2503.09781",
+    "title": "Learning richness modulates equality reasoning in neural networks",
+    "pdf_url": "https://arxiv.org/pdf/2503.09781v3",
+    "year": 2025
+  },
+  "NormalizedSpaceAlign_2024": {
+    "arxiv_id": "2411.04512",
+    "title": "Normalized Space Alignment: A Versatile Metric for Representation Analysis",
+    "pdf_url": "https://arxiv.org/pdf/2411.04512v1",
+    "year": 2024
+  },
+  "BatchNormOrtho_2021": {
+    "arxiv_id": "2106.03970",
+    "title": "Batch Normalization Orthogonalizes Representations in Deep Random Networks",
+    "pdf_url": "https://arxiv.org/pdf/2106.03970v1",
+    "year": 2021
+  },
+  "MPruner_CKA_2024": {
+    "arxiv_id": "2408.13482",
+    "title": "MPruner: Optimizing Neural Network Size with CKA-Based Mutual Information Prunin",
+    "pdf_url": "https://arxiv.org/pdf/2408.13482v2",
+    "year": 2024
+  },
+  "CKA_Inadequacy_2022": {
+    "arxiv_id": "2306.11113",
+    "title": "Learn to Accumulate Evidence from All Training Samples: Theory and Practice",
+    "pdf_url": "https://arxiv.org/pdf/2306.11113v2",
+    "year": 2023
+  },
+  "SubspaceClustering_2021": {
+    "arxiv_id": "2307.05639",
+    "title": "Learning Active Subspaces and Discovering Important Features with Gaussian Radia",
+    "pdf_url": "https://arxiv.org/pdf/2307.05639v2",
+    "year": 2023
+  },
+  "CurvatureCompare_2018": {
+    "arxiv_id": "2306.14753",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural",
+    "pdf_url": "https://arxiv.org/pdf/2306.14753v1",
+    "year": 2023
+  },
+  "LAYA_2025": {
+    "arxiv_id": "2511.12723",
+    "title": "LAYA: Layer-wise Attention Aggregation for Interpretable Depth-Aware Neural Netw",
+    "pdf_url": "https://arxiv.org/pdf/2511.12723v1",
+    "year": 2025
+  },
+  "IndividualDifferences_2020": {
+    "arxiv_id": "1609.04846",
+    "title": "A Tutorial about Random Neural Networks in Supervised Learning",
+    "pdf_url": "https://arxiv.org/pdf/1609.04846v1",
+    "year": 2016
+  }
+}

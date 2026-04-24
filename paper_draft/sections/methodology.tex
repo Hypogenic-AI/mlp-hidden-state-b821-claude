@@ -1,0 +1,49 @@
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Architecture family}
+
+We study \mlp{d}{w}: an input layer, followed by $d$ hidden blocks of $\mathrm{Linear}_w \to \mathrm{ReLU}$, followed by a $\mathrm{Linear}$ classifier. All hidden layers share a common width $w$, which is necessary for the constant-dimension metrics (sample-wise cosine) and avoids confounds from width-rescaling between layers. Weights use PyTorch's default Kaiming-uniform initialization, optionally rescaled by a scalar $\alpha$ for the rich-vs-lazy ablation. Inputs are flattened raw pixels with per-channel standardization.
+
+\subsection{Training protocol}
+
+We use AdamW with learning rate $10^{-3}$, weight decay $5\times 10^{-4}$, batch size 512, and a cosine schedule over the full training horizon (15 epochs for \cifar, 8 epochs for \mnist). Datasets are preloaded to GPU tensors, eliminating loader overhead on an NVIDIA RTX A6000. Each configuration is trained for three seeds $s\!\in\!\{0,1,2\}$; ablations use seed 0.
+
+\subsection{Probe set and representation extraction}
+
+Representations are extracted in eval mode on the first 5{,}000 test examples, held fixed across all runs and all metrics (following the Kornblith convention and addressing the \citet{davari2022reliability} subset-shift concern by comparing every layer pair on identical data). The remaining 5{,}000 test examples are used for final accuracy reporting only. For each trained model we collect post-ReLU activations at every hidden layer, producing a stack $\{\mX_\ell \in \R^{5000 \times w}\}_{\ell=1}^{d}$.
+
+\subsection{Representation-similarity metrics}
+
+\para{Linear CKA.} With $\mX, \mY \in \R^{n \times w}$ centered along the sample axis, we use the feature-space formula:
+\begin{equation}
+    \ckam(\mX, \mY) \;=\; \frac{\|\mX^\top \mY\|_F^2}{\|\mX^\top \mX\|_F \; \|\mY^\top \mY\|_F}.
+    \label{eq:cka}
+\end{equation}
+
+\para{Orthogonal Procrustes similarity.} For centered, Frobenius-normalized $\mX, \mY$ (padded with zeros to equal width if required), the maximum inner-product alignment achievable by any orthogonal rotation is the nuclear norm of the cross matrix: $\procrustes(\mX, \mY) = \|\mX^\top \mY\|_*$.
+
+\para{Sample-wise cosine similarity.} After centering, the mean cosine similarity between corresponding rows of $\mX$ and $\mY$~\citep{jiang2024tracing}. Defined only for equal-width pairs.
+
+\para{PC-1 variance ratio.} Share of total variance in $\mX_\ell$ explained by its first principal component---a scalar per-layer diagnostic of representation collapse onto a dominant direction~\citep{nguyen2022origins}.
+
+\para{Per-layer linear probe accuracy.} We split the 5{,}000-sample probe set 60/40 and fit an $\ell_2$-regularized multinomial logistic regression (200 Adam iterations) on each layer's standardized activations. The 60\% split trains the probe; the 40\% split reports probe accuracy. This gives a task-functional readout complementing the purely statistical similarity metrics.
+
+\subsection{Regime diagnostic}
+
+We track $\|\theta_{\mathrm{final}} - \theta_{\mathrm{init}}\|/\|\theta_{\mathrm{init}}\|$ summed over all parameter blocks, following the rich-vs-lazy framework of \citet{chizat2019global}. Small values indicate a lazy (NTK-like) training trajectory; large values indicate rich feature learning.
+
+\subsection{Sweep and ablations}
+
+\para{Main sweep.} Depths $d\!\in\!\{4,8,16\}$, widths $w\!\in\!\{128, 512, 2048\}$, seeds $\{0,1,2\}$, on both \cifar and \mnist. The $d\!=\!16$, $w\!=\!2048$ configuration was deprioritized due to prohibitive SVD cost: the pattern at $d\!=\!16$, $w\!\in\!\{128, 512\}$ is already conclusive.
+
+\para{Ablations} (all on the reference \mlp{8}{512}, \cifar, seed 0):
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+    \item \textbf{Rich vs.\ lazy}: initialization-scale sweep $\alpha\!\in\!\{0.25, 0.5, 1.0, 2.0, 4.0\}$.
+    \item \textbf{Shuffled-label control}: retrain with randomly permuted labels to test whether observed cross-layer similarity is task-driven.
+    \item \textbf{Dominant-datapoint ablation}~\citep{nguyen2022origins}: recompute \ckam after excluding probe examples whose concatenated-activation $L^2$-norm lies in the top decile.
+\end{itemize}
+
+\subsection{Statistical analysis}
+
+We report \ckam heatmaps as means over three seeds. H1 (adjacent vs.\ far-layer) is tested with a paired $t$-test comparing CKA at gap $k\!=\!1$ vs.\ $k\!\geq\!3$. H2 (width $\leftrightarrow$ CKA) uses Spearman $\rho$ at fixed depth. H4 (metric agreement) uses Spearman $\rho$ between pairwise similarity rankings. H5 (rich-vs-lazy) uses Spearman $\rho$ between $\|\Delta\theta\|/\|\theta_0\|$ and mean off-diagonal CKA. We use $\alpha = 0.05$ with Holm--Bonferroni correction within each family.

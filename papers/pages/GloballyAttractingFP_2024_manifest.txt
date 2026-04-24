@@ -1,0 +1,12 @@
+PDF: papers/GloballyAttractingFP_2024.pdf
+Total pages: 21
+Pages per chunk: 3
+
+Chunks:
+  GloballyAttractingFP_2024_chunk_001.pdf: pages 1-3
+  GloballyAttractingFP_2024_chunk_002.pdf: pages 4-6
+  GloballyAttractingFP_2024_chunk_003.pdf: pages 7-9
+  GloballyAttractingFP_2024_chunk_004.pdf: pages 10-12
+  GloballyAttractingFP_2024_chunk_005.pdf: pages 13-15
+  GloballyAttractingFP_2024_chunk_006.pdf: pages 16-18
+  GloballyAttractingFP_2024_chunk_007.pdf: pages 19-21

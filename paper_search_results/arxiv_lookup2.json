@@ -1,0 +1,80 @@
+{
+  "OneWideFFN_2023": {
+    "arxiv_id": "math/0408053",
+    "title": "Canonical characters on quasi-symmetric functions and bivariate Catalan numbers",
+    "pdf_url": "https://arxiv.org/pdf/math/0408053v1",
+    "year": 2004
+  },
+  "GloballyAttractingFP_2024": {
+    "arxiv_id": "2306.14753",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural",
+    "pdf_url": "https://arxiv.org/pdf/2306.14753v1",
+    "year": 2023
+  },
+  "DeepNetsPaths_2023": {
+    "arxiv_id": "2306.14753",
+    "title": "The Deep Arbitrary Polynomial Chaos Neural Network or how Deep Artificial Neural",
+    "pdf_url": "https://arxiv.org/pdf/2306.14753v1",
+    "year": 2023
+  },
+  "GraphBasedSim_2021": {
+    "arxiv_id": "2507.06261",
+    "title": "Gemini 2.5: Pushing the Frontier with Advanced Reasoning, Multimodality, Long Co",
+    "pdf_url": "https://arxiv.org/pdf/2507.06261v6",
+    "year": 2025
+  },
+  "SVCCA_LM_Edinburgh": {
+    "arxiv_id": "1811.00225",
+    "title": "Understanding Learning Dynamics Of Language Models with SVCCA",
+    "pdf_url": "https://arxiv.org/pdf/1811.00225v3",
+    "year": 2018
+  },
+  "CKA_Inadequacy_2022": {
+    "arxiv_id": "2210.16156",
+    "title": "Reliability of CKA as a Similarity Measure in Deep Learning",
+    "pdf_url": "https://arxiv.org/pdf/2210.16156v2",
+    "year": 2022
+  },
+  "SubspaceClustering_2021": {
+    "arxiv_id": "2307.05639",
+    "title": "Learning Active Subspaces and Discovering Important Features with Gaussian Radia",
+    "pdf_url": "https://arxiv.org/pdf/2307.05639v2",
+    "year": 2023
+  },
+  "CurvatureCompare_2018": {
+    "arxiv_id": "2103.10093",
+    "title": "Conjectures on Convergence and Scalar Curvature",
+    "pdf_url": "https://arxiv.org/pdf/2103.10093v1",
+    "year": 2021
+  },
+  "TracingRepProgression_2024": {
+    "arxiv_id": "2206.00583",
+    "title": "Calibrate and Debias Layer-wise Sampling for Graph Convolutional Networks",
+    "pdf_url": "https://arxiv.org/pdf/2206.00583v2",
+    "year": 2022
+  },
+  "MLPMixer_Wide_Sparse_2023": {
+    "arxiv_id": "2306.01470",
+    "title": "Understanding MLP-Mixer as a Wide and Sparse MLP",
+    "pdf_url": "https://arxiv.org/pdf/2306.01470v2",
+    "year": 2023
+  },
+  "BlockStructure_Origins_2022": {
+    "arxiv_id": "2202.07184",
+    "title": "On the Origins of the Block Structure Phenomenon in Neural Network Representatio",
+    "pdf_url": "https://arxiv.org/pdf/2202.07184v1",
+    "year": 2022
+  },
+  "IndividualDifferences_2020": {
+    "arxiv_id": "2510.21142",
+    "title": "In Silico Mapping of Visual Categorical Selectivity Across the Whole Brain",
+    "pdf_url": "https://arxiv.org/pdf/2510.21142v1",
+    "year": 2025
+  },
+  "WideDeep_2020": {
+    "arxiv_id": "2010.15327",
+    "title": "Do Wide and Deep Networks Learn the Same Things? Uncovering How Neural Network R",
+    "pdf_url": "https://arxiv.org/pdf/2010.15327v2",
+    "year": 2020
+  }
+}
